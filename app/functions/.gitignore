@@ -1,0 +1,4 @@
+# Firebase Functions
+node_modules/
+.env*
+!.env.example
