@@ -16,6 +16,10 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
+      match /recipeAttempts/{attemptId} {
+        allow read, write: if isOwner(uid);
+      }
+
       match /tokens/{tokenId} {
         allow read, write: if isOwner(uid);
       }

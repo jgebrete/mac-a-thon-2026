@@ -11,6 +11,8 @@ class UserBootstrapService {
     await ref.set(<String, dynamic>{
       'createdAt': FieldValue.serverTimestamp(),
       'notificationThresholdDays': 3,
+      'perishableReminderDays': 7,
+      'themeMode': 'system',
     }, SetOptions(merge: true));
   }
 }

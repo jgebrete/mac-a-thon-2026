@@ -17,7 +17,11 @@ class RecipesService {
             (item) => <String, dynamic>{
               'name': item.name,
               'category': item.category,
-              'expiryDateISO': item.expiryDate.toIso8601String(),
+              'expiryDateISO': item.expiryDate?.toIso8601String(),
+              'isPerishableNoExpiry': item.isPerishableNoExpiry,
+              'priorityHint': item.isPerishableNoExpiry
+                  ? 'perishable_no_expiry'
+                  : 'dated',
               'quantityValue': item.quantityValue,
               'quantityUnit': item.quantityUnit,
               'quantityNote': item.quantityNote,

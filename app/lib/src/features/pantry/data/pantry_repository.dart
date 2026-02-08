@@ -42,11 +42,82 @@ class PantryRepository {
   }
 
   Future<void> archiveItem(String uid, PantryItem item) async {
+    await archiveItemWithReason(
+      uid,
+      item,
+      PantryArchivedReason.thrown,
+    );
+  }
+
+  Future<void> archiveItemWithReason(
+    String uid,
+    PantryItem item,
+    PantryArchivedReason reason, {
+    String? recipeAttemptId,
+  }) async {
     await _pantryCollection(uid).doc(item.id).update(<String, dynamic>{
       'isArchived': true,
+      'archivedReason': reason.name,
+      'lastRecipeAttemptId': recipeAttemptId,
       'updatedAt': Timestamp.now(),
     });
   }
+
+  Future<void> archiveItemsForRecipe(
+    String uid,
+    List<PantryItem> items, {
+    required String recipeAttemptId,
+  }) async {
+    final batch = _db.batch();
+    for (final item in items) {
+      final ref = _pantryCollection(uid).doc(item.id);
+      batch.update(ref, <String, dynamic>{
+        'isArchived': true,
+        'archivedReason': PantryArchivedReason.consumedRecipe.name,
+        'lastRecipeAttemptId': recipeAttemptId,
+        'updatedAt': Timestamp.now(),
+      });
+    }
+    await batch.commit();
+  }
+
+  Future<void> applyRecipeConsumption(
+    String uid,
+    String recipeAttemptId,
+    List<PantryConsumptionUpdate> updates,
+  ) async {
+    final batch = _db.batch();
+    for (final update in updates) {
+      final ref = _pantryCollection(uid).doc(update.itemId);
+      if (update.archive) {
+        batch.update(ref, <String, dynamic>{
+          'isArchived': true,
+          'archivedReason': PantryArchivedReason.consumedRecipe.name,
+          'lastRecipeAttemptId': recipeAttemptId,
+          'updatedAt': Timestamp.now(),
+        });
+      } else {
+        batch.update(ref, <String, dynamic>{
+          'quantityValue': update.newQuantityValue,
+          'lastRecipeAttemptId': recipeAttemptId,
+          'updatedAt': Timestamp.now(),
+        });
+      }
+    }
+    await batch.commit();
+  }
+}
+
+class PantryConsumptionUpdate {
+  const PantryConsumptionUpdate({
+    required this.itemId,
+    required this.archive,
+    this.newQuantityValue,
+  });
+
+  final String itemId;
+  final bool archive;
+  final double? newQuantityValue;
 }
 
 final pantryRepositoryProvider = Provider<PantryRepository>((ref) {
