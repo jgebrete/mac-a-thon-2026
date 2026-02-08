@@ -50,7 +50,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
         final router = ref.watch(goRouterProvider);
         return MaterialApp.router(
-          title: 'Smart Food Expiry Tracker',
+          title: 'ReciPan',
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: themeMode,
@@ -62,7 +62,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
   MaterialApp _buildMaterial(Widget home, ThemeMode themeMode) {
     return MaterialApp(
-      title: 'Smart Food Expiry Tracker',
+      title: 'ReciPan',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,

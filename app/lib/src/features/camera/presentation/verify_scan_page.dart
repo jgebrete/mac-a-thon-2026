@@ -25,6 +25,7 @@ class VerifyScanPage extends ConsumerStatefulWidget {
 class _VerifyScanPageState extends ConsumerState<VerifyScanPage> {
   late final List<_EditableDetectedItem> _items;
   bool _saving = false;
+  bool _warningsExpanded = false;
 
   @override
   void initState() {
@@ -41,47 +42,87 @@ class _VerifyScanPageState extends ConsumerState<VerifyScanPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Verify Scan')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: <Widget>[
-          if (widget.warnings.isNotEmpty)
-            Card(
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: widget.warnings
-                      .map((warning) => Text('• $warning'))
-                      .toList(growable: false),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: <Widget>[
+                if (widget.warnings.isNotEmpty) _buildWarningsCard(context),
+                ..._buildItemCards(),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => setState(() => _items.add(_EditableDetectedItem.empty())),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Row'),
                 ),
-              ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry Scan'),
+                ),
+                const SizedBox(height: 12),
+              ],
             ),
-          ..._buildItemCards(),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => setState(() => _items.add(_EditableDetectedItem.empty())),
-            icon: const Icon(Icons.add),
-            label: const Text('Add Row'),
-          ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry Scan'),
-          ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: _saving ? null : _save,
-            child: _saving
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Save To Pantry'),
           ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: FilledButton(
+          onPressed: _saving ? null : _save,
+          child: _saving
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Save To Pantry'),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWarningsCard(BuildContext context) {
+    final first = widget.warnings.first;
+    final extraCount = widget.warnings.length - 1;
+
+    return Card(
+      color: Theme.of(context).colorScheme.tertiaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Icon(Icons.warning_amber_rounded),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    extraCount > 0 ? '$first (+$extraCount more)' : first,
+                    maxLines: _warningsExpanded ? null : 2,
+                    overflow: _warningsExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            if (_warningsExpanded) ...<Widget>[
+              const SizedBox(height: 8),
+              ...widget.warnings.map((warning) => Text('• $warning')),
+            ],
+            if (widget.warnings.length > 1 || first.length > 90)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => setState(() => _warningsExpanded = !_warningsExpanded),
+                  child: Text(_warningsExpanded ? 'Hide details' : 'Show details'),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -113,12 +154,18 @@ class _VerifyScanPageState extends ConsumerState<VerifyScanPage> {
                 ),
                 TextFormField(
                   initialValue: item.name,
-                  decoration: const InputDecoration(labelText: 'Ingredient Name'),
+                  decoration: const InputDecoration(
+                    labelText: 'Ingredient Name',
+                    isDense: true,
+                  ),
                   onChanged: (v) => item.name = v,
                 ),
                 TextFormField(
                   initialValue: item.category,
-                  decoration: const InputDecoration(labelText: 'Category'),
+                  decoration: const InputDecoration(
+                    labelText: 'Category',
+                    isDense: true,
+                  ),
                   onChanged: (v) => item.category = v,
                 ),
                 const SizedBox(height: 8),
@@ -169,7 +216,11 @@ class _VerifyScanPageState extends ConsumerState<VerifyScanPage> {
                           if (item.expiryReason != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
-                              child: Text(item.expiryReason!),
+                              child: Text(
+                                item.expiryReason!,
+                                maxLines: 4,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           if (item.inferredExpiryDate != null) ...<Widget>[
                             const SizedBox(height: 6),
@@ -195,31 +246,55 @@ class _VerifyScanPageState extends ConsumerState<VerifyScanPage> {
                     ),
                   ),
                 ],
-                TextFormField(
-                  initialValue: item.quantityValue?.toString() ?? '',
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Quantity Value'),
-                  onChanged: (v) => item.quantityValue = double.tryParse(v),
-                ),
-                DropdownButtonFormField<String>(
-                  initialValue: quantityUnits.contains(item.quantityUnit)
-                      ? item.quantityUnit
-                      : 'other',
-                  items: quantityUnits
-                      .map(
-                        (unit) => DropdownMenuItem<String>(
-                          value: unit,
-                          child: Text(unit),
+                Card(
+                  margin: const EdgeInsets.only(top: 8),
+                  child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+                    childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    initiallyExpanded: item.advancedExpanded,
+                    onExpansionChanged: (expanded) {
+                      setState(() => item.advancedExpanded = expanded);
+                    },
+                    title: const Text('Advanced details'),
+                    subtitle: const Text('Quantity and notes'),
+                    children: <Widget>[
+                      TextFormField(
+                        initialValue: item.quantityValue?.toString() ?? '',
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Quantity Value',
+                          isDense: true,
                         ),
-                      )
-                      .toList(growable: false),
-                  onChanged: (value) => item.quantityUnit = value,
-                  decoration: const InputDecoration(labelText: 'Quantity Unit'),
-                ),
-                TextFormField(
-                  initialValue: item.quantityNote,
-                  decoration: const InputDecoration(labelText: 'Quantity Note'),
-                  onChanged: (v) => item.quantityNote = v,
+                        onChanged: (v) => item.quantityValue = double.tryParse(v),
+                      ),
+                      DropdownButtonFormField<String>(
+                        initialValue: quantityUnits.contains(item.quantityUnit)
+                            ? item.quantityUnit
+                            : 'other',
+                        items: quantityUnits
+                            .map(
+                              (unit) => DropdownMenuItem<String>(
+                                value: unit,
+                                child: Text(unit),
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: (value) => item.quantityUnit = value,
+                        decoration: const InputDecoration(
+                          labelText: 'Quantity Unit',
+                          isDense: true,
+                        ),
+                      ),
+                      TextFormField(
+                        initialValue: item.quantityNote,
+                        decoration: const InputDecoration(
+                          labelText: 'Quantity Note',
+                          isDense: true,
+                        ),
+                        onChanged: (v) => item.quantityNote = v,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -352,6 +427,7 @@ class _EditableDetectedItem {
     required this.expirySource,
     required this.expiryInferenceNoticeShown,
     required this.isPerishableNoExpiry,
+    required this.advancedExpanded,
     this.expiryReason,
     this.quantityValue,
     this.quantityUnit,
@@ -370,6 +446,7 @@ class _EditableDetectedItem {
       expirySource: hasDetected ? ExpirySource.detected : ExpirySource.manual,
       expiryInferenceNoticeShown: false,
       isPerishableNoExpiry: false,
+      advancedExpanded: false,
       expiryReason: item.expiryReason,
       quantityValue: item.quantityValue,
       quantityUnit: item.quantityUnit,
@@ -388,6 +465,7 @@ class _EditableDetectedItem {
       expirySource: ExpirySource.manual,
       expiryInferenceNoticeShown: false,
       isPerishableNoExpiry: false,
+      advancedExpanded: false,
     );
   }
 
@@ -400,6 +478,7 @@ class _EditableDetectedItem {
   ExpirySource expirySource;
   bool expiryInferenceNoticeShown;
   bool isPerishableNoExpiry;
+  bool advancedExpanded;
   String? expiryReason;
   double? quantityValue;
   String? quantityUnit;

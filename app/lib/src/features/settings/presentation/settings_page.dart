@@ -85,6 +85,36 @@ class SettingsPage extends ConsumerWidget {
             ),
             Text('${settings.perishableReminderDays} day(s)'),
             const SizedBox(height: 24),
+            Text('Safety Notes', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const <Widget>[
+                    _SafetyNoteRow(
+                      icon: Icons.warning_amber_rounded,
+                      text:
+                          'AI-extracted dates are drafts. Always verify before saving.',
+                    ),
+                    SizedBox(height: 8),
+                    _SafetyNoteRow(
+                      icon: Icons.schedule,
+                      text:
+                          'Perishable items with no fixed date are prioritized as "use soon".',
+                    ),
+                    SizedBox(height: 8),
+                    _SafetyNoteRow(
+                      icon: Icons.health_and_safety_outlined,
+                      text:
+                          'If smell, texture, or appearance seems off, discard the food.',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             Text('Demo Tools', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             FilledButton.icon(
@@ -123,6 +153,28 @@ class SettingsPage extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _SafetyNoteRow extends StatelessWidget {
+  const _SafetyNoteRow({
+    required this.icon,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(icon, size: 20),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text)),
+      ],
     );
   }
 }
